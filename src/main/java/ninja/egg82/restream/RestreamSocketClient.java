@@ -1,4 +1,4 @@
-package ninja.egg82;
+package ninja.egg82.restream;
 
 import com.github.scribejava.core.builder.ServiceBuilder;
 import com.github.scribejava.core.model.*;
@@ -12,7 +12,7 @@ import ninja.egg82.core.RestreamApi20;
 import ninja.egg82.core.RestreamSocket;
 import ninja.egg82.utils.FileUtil;
 
-public class SocketClient {
+public class RestreamSocketClient {
     private final OAuth20Service service;
     private final File cacheFile;
 
@@ -27,7 +27,7 @@ public class SocketClient {
     private Consumer<Exception> onException = null;
     private Consumer<String> onEvent = null;
 
-    public SocketClient(String clientID, String clientSecret, String callbackURL, File cacheFile) throws IOException, ExecutionException, InterruptedException {
+    public RestreamSocketClient(String clientID, String clientSecret, String callbackURL, File cacheFile) throws IOException, ExecutionException, InterruptedException {
         this.cacheFile = FileUtil.getOrCreateFile(cacheFile);
         this.service = new ServiceBuilder(clientID)
                 .responseType("code")
