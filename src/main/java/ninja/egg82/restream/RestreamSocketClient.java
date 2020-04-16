@@ -21,11 +21,17 @@ public class RestreamSocketClient {
     private String accessToken = null;
     private long accessTokenExpires = -1L;
     private RestreamSocket client = null;
+    private RestreamSocket chatClient = null;
 
     private BiConsumer<Integer, String> onConnect = null;
     private BiConsumer<Integer, String> onDisconnect = null;
     private Consumer<Exception> onException = null;
     private Consumer<String> onEvent = null;
+
+    private BiConsumer<Integer, String> onChatConnect = null;
+    private BiConsumer<Integer, String> onChatDisconnect = null;
+    private Consumer<Exception> onChatException = null;
+    private Consumer<String> onChatEvent = null;
 
     public RestreamSocketClient(String clientID, String clientSecret, String callbackURL, File cacheFile) throws IOException, ExecutionException, InterruptedException {
         this.cacheFile = FileUtil.getOrCreateFile(cacheFile);
@@ -46,6 +52,8 @@ public class RestreamSocketClient {
 
     public boolean isConnected() { return client != null && !client.isClosed(); }
 
+    public boolean isChatConnected() { return chatClient != null && !chatClient.isClosed(); }
+
     public String getAuthURL() { return service.getAuthorizationUrl(); }
 
     public void authorize(String authCode) throws IOException, ExecutionException, InterruptedException {
@@ -59,7 +67,12 @@ public class RestreamSocketClient {
         if (client != null && !client.isClosed()) {
             client.closeBlocking();
             tryGetSocket();
-            client.connect();
+            client.connectBlocking();
+        }
+        if (chatClient != null && !chatClient.isClosed()) {
+            chatClient.closeBlocking();
+            tryGetChatSocket();
+            chatClient.connectBlocking();
         }
     }
 
@@ -69,7 +82,12 @@ public class RestreamSocketClient {
             if (client != null && !client.isClosed()) {
                 client.closeBlocking();
                 tryGetSocket();
-                client.connect();
+                client.connectBlocking();
+            }
+            if (chatClient != null && !chatClient.isClosed()) {
+                chatClient.closeBlocking();
+                tryGetChatSocket();
+                chatClient.connectBlocking();
             }
         }
         return accessToken != null && !isAccessTokenExpired();
@@ -81,7 +99,19 @@ public class RestreamSocketClient {
                 client.closeBlocking();
             }
             tryGetSocket();
-            client.connect();
+            client.connectBlocking();
+            return true;
+        }
+        return false;
+    }
+
+    public boolean reconnectChatSocket() throws IOException, InterruptedException {
+        if (accessToken != null && !isAccessTokenExpired()) {
+            if (chatClient != null && !chatClient.isClosed()) {
+                chatClient.closeBlocking();
+            }
+            tryGetChatSocket();
+            chatClient.connectBlocking();
             return true;
         }
         return false;
@@ -95,17 +125,25 @@ public class RestreamSocketClient {
         if (client != null && !client.isClosed()) {
             client.closeBlocking();
         }
+        if (chatClient != null && !chatClient.isClosed()) {
+            chatClient.closeBlocking();
+        }
     }
 
     public void connect() throws IOException, ExecutionException, InterruptedException {
         if (client != null && !client.isClosed()) {
             client.closeBlocking();
         }
+        if (chatClient != null && !chatClient.isClosed()) {
+            chatClient.closeBlocking();
+        }
         if (refreshToken != null && isAccessTokenExpired()) {
             tryGetAccessToken();
         }
         tryGetSocket();
         client.connectBlocking();
+        tryGetChatSocket();
+        chatClient.connectBlocking();
     }
 
     public void onConnect(BiConsumer<Integer, String> consumer) throws IOException, ExecutionException, InterruptedException {
@@ -164,6 +202,62 @@ public class RestreamSocketClient {
         }
     }
 
+    public void onChatConnect(BiConsumer<Integer, String> consumer) throws IOException, ExecutionException, InterruptedException {
+        this.onChatConnect = consumer;
+        if (chatClient != null && !chatClient.isClosed()) {
+            chatClient.closeBlocking();
+
+            if (refreshToken != null && isAccessTokenExpired()) {
+                tryGetAccessToken();
+            }
+            if (accessToken != null && !isAccessTokenExpired()) {
+                tryGetChatSocket();
+            }
+        }
+    }
+
+    public void onChatDisconnect(BiConsumer<Integer, String> consumer) throws IOException, ExecutionException, InterruptedException {
+        this.onChatDisconnect = consumer;
+        if (chatClient != null && !chatClient.isClosed()) {
+            chatClient.closeBlocking();
+
+            if (refreshToken != null && isAccessTokenExpired()) {
+                tryGetAccessToken();
+            }
+            if (accessToken != null && !isAccessTokenExpired()) {
+                tryGetChatSocket();
+            }
+        }
+    }
+
+    public void onChatException(Consumer<Exception> consumer) throws IOException, ExecutionException, InterruptedException {
+        this.onChatException = consumer;
+        if (chatClient != null && !chatClient.isClosed()) {
+            chatClient.closeBlocking();
+
+            if (refreshToken != null && isAccessTokenExpired()) {
+                tryGetAccessToken();
+            }
+            if (accessToken != null && !isAccessTokenExpired()) {
+                tryGetChatSocket();
+            }
+        }
+    }
+
+    public void onChatEvent(Consumer<String> consumer) throws IOException, ExecutionException, InterruptedException {
+        this.onChatEvent = consumer;
+        if (chatClient != null && !chatClient.isClosed()) {
+            chatClient.closeBlocking();
+
+            if (refreshToken != null && isAccessTokenExpired()) {
+                tryGetAccessToken();
+            }
+            if (accessToken != null && !isAccessTokenExpired()) {
+                tryGetChatSocket();
+            }
+        }
+    }
+
     private void tryParseCache() throws IOException {
         try (
                 FileReader reader = new FileReader(cacheFile);
@@ -211,7 +305,16 @@ public class RestreamSocketClient {
 
     private void tryGetSocket() throws IOException {
         try {
-            client = new RestreamSocket(accessToken, onConnect, onDisconnect, onException, onEvent);
+            client = new RestreamSocket("wss://streaming.api.restream.io/ws?accessToken=" + accessToken, onConnect, onDisconnect, onException, onEvent);
+        } catch (URISyntaxException ex) {
+            // Should never happen
+            throw new IOException("Illegal WebSocket URL identified.", ex);
+        }
+    }
+
+    private void tryGetChatSocket() throws IOException {
+        try {
+            chatClient = new RestreamSocket("wss://chat.api.restream.io/ws?accessToken=" + accessToken, onChatConnect, onChatDisconnect, onChatException, onChatEvent);
         } catch (URISyntaxException ex) {
             // Should never happen
             throw new IOException("Illegal WebSocket URL identified.", ex);

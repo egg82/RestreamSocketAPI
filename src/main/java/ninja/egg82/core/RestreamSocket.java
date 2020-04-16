@@ -13,8 +13,8 @@ public class RestreamSocket extends WebSocketClient {
     private Consumer<Exception> onException;
     private Consumer<String> onEvent;
 
-    public RestreamSocket(String accessToken, BiConsumer<Integer, String> onConnect, BiConsumer<Integer, String> onDisconnect, Consumer<Exception> onException, Consumer<String> onEvent) throws URISyntaxException {
-        super(new URI("wss://streaming.api.restream.io/ws?accessToken=" + accessToken));
+    public RestreamSocket(String url, BiConsumer<Integer, String> onConnect, BiConsumer<Integer, String> onDisconnect, Consumer<Exception> onException, Consumer<String> onEvent) throws URISyntaxException {
+        super(new URI(url));
 
         this.onConnect = onConnect;
         this.onDisconnect = onDisconnect;
