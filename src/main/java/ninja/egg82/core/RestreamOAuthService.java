@@ -27,8 +27,6 @@ public class RestreamOAuthService extends OAuth20Service {
 
         api.getClientAuthentication().addClientAuthentication(request, getApiKey(), getApiSecret());
         request.addBodyParameter(OAuthConstants.GRANT_TYPE, OAuthConstants.AUTHORIZATION_CODE);
-        request.addBodyParameter(OAuthConstants.CLIENT_ID, getApiKey());
-        request.addBodyParameter(OAuthConstants.CLIENT_SECRET, getApiSecret());
         request.addBodyParameter(OAuthConstants.REDIRECT_URI, getCallback());
         request.addParameter(OAuthConstants.CODE, params.getCode());
 
@@ -70,7 +68,6 @@ public class RestreamOAuthService extends OAuth20Service {
         final DefaultApi20 api = getApi();
         final OAuthRequest request = new OAuthRequest(Verb.POST, api.getRevokeTokenEndpoint());
 
-        api.getClientAuthentication().addClientAuthentication(request, getApiKey(), getApiSecret());
         request.addParameter("token", tokenToRevoke);
         request.addParameter("token_type_hint", tokenTypeHint.getValue());
 

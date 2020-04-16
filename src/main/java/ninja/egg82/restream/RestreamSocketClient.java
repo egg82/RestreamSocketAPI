@@ -202,6 +202,8 @@ public class RestreamSocketClient {
 
     private void tryGetAccessToken() throws IOException, ExecutionException, InterruptedException {
         OAuth2AccessToken token = service.refreshAccessToken(refreshToken);
+        refreshToken = token.getRefreshToken();
+        refreshTokenExpires = System.currentTimeMillis() + 31536000000L; // 1 year
         accessToken = token.getAccessToken();
         accessTokenExpires = System.currentTimeMillis() + (token.getExpiresIn() * 1000L);
         writeCache();
